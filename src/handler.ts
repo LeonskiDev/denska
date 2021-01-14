@@ -32,7 +32,7 @@ export default class Handler<Context> {
    * created [koa-compose](https://github.com/koajs/compose). This code is
    * derived from their (tweaked) code.
    */
-  protected async handle(ctx: Context) {
+  async handle(ctx: Context) {
     let last = -1;
 
     const dispatch = async (i: number): Promise<void> => {
