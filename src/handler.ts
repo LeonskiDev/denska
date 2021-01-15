@@ -9,8 +9,8 @@
  * called by the current function, the `ctx` will begin to flow back up-stream.
  * This allows for the previous middleware functions to complete.
  */
-export default class Handler<Context> {
-  #middleware: Middleware<Context>[] = [];
+export default class Handler {
+  #middleware: Middleware[] = [];
 
   /**
    * Adds the middleware function to the end of the stack.
@@ -21,7 +21,7 @@ export default class Handler<Context> {
    * `next` is a function which when called then calls the next middleware
    * function in the stack, passing on the `ctx`.
    */
-  use(fn: (ctx: Context, next: () => Promise<void>) => Promise<void>) {
+  use<Context>(fn: (ctx: Context, next: () => Promise<void>) => Promise<void>) {
     this.#middleware.push(fn);
   }
 
@@ -32,14 +32,14 @@ export default class Handler<Context> {
    * created [koa-compose](https://github.com/koajs/compose). This code is
    * derived from their (tweaked) code.
    */
-  async handle(ctx: Context) {
+  async handle<Context>(ctx: Context) {
     let last = -1;
 
     const dispatch = async (i: number): Promise<void> => {
       if(i <= last) return Promise.reject(new Error("next called multiple times"));
 
       last = i;
-      let fn: Middleware<Context> = this.#middleware[i];
+      let fn = this.#middleware[i];
 
       if(i === this.#middleware.length) fn = async () => {};
       if(!fn) return Promise.resolve();
@@ -52,4 +52,4 @@ export default class Handler<Context> {
   }
 }
 
-type Middleware<Context> = (ctx: Context, next: () => Promise<void>) => Promise<void>;
+type Middleware = (ctx: any, next: () => Promise<void>) => Promise<void>;

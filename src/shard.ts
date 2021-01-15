@@ -26,18 +26,18 @@ const ENCODING = "json";
  * 
  * [Discord Docs](https://discord.com/developers/docs/topics/gateway#sharding)
  */
-export default class Shard extends Handler<ShardContext> {
+export default class Shard extends Handler {
   #ws: WebSocket;
 
   constructor({ url, gateway_version = GATEWAY_VERSION, encoding = ENCODING }: { url: string, gateway_version?: number, encoding?: "json" | "etf" }) {
     super();
 
-    this.#ws = new WebSocket(`${url}/?v=${gateway_version}&encoding=${encoding}`);
+    this.#ws = new WebSocket(`${url}${url.endsWith("/") ? "" : "/"}?v=${gateway_version}&encoding=${encoding}`);
 
     this.#ws.addEventListener("message", e => {
       this.handle({
         raw: JSON.parse(e.data) as Payload
-      });
+      } as ShardContext);
     });
 
     this.#ws.addEventListener("close", e => {
@@ -46,7 +46,7 @@ export default class Shard extends Handler<ShardContext> {
           code: e.code,
           name: CloseCode[e.code] ?? CloseCode[4000]
         }
-      });
+      } as ShardContext);
     });
   }
 

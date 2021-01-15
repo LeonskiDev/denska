@@ -3,7 +3,7 @@ A middleware based [@discord] Gateway API.
 Denska allows you to create a [@discord] bot using a middleware system like that used by [koa](https://github.com/koajs/koa). When a payload is sent from [@discord] to a shard it gets added to a context and sent through the middleware stack.
 
 ### Comparisons
-Let's look at some code in other libraries and [denska] and how they compare to eachother. As a side note I don't hate any of the other libraries, they're actually a ton more beginner friendly than this one and I would recommend them.
+Let's look at some code in other libraries including [denska] and how they compare to eachother. As a side note I don't hate any of the other libraries, they're actually a ton more beginner friendly than this one and I would recommend them.
 
 A simple logging bot you might write in [discordeno] (version [@10.0.2](https://deno.land/x/discordeno@10.0.2)):
 ```js
@@ -40,14 +40,14 @@ client.login("<bot_token>");
 
 And now that logging bot but written in [denska] (version [v0.2.0](https://github.com/LeonskiDev/denska/releases/tag/v0.2.0)):
 ```js
-import { Shard, Payload, PayloadOpcode } from "./mod.ts";
+import { Shard, ShardContext, Payload, PayloadOpcode } from "./mod.ts";
 
 // this just uses the general gateway url
 const shard = new Shard({
  url: "wss://gateway.discord.gg"
 });
 
-shard.use(async (ctx, next) => {
+shard.use<ShardContext>(async (ctx, next) => {
   // the event is a payload
   if(ctx.raw) {
     // got the initial hello
@@ -81,7 +81,7 @@ shard.use(async (ctx, next) => {
   }
 });
 
-shard.use(async (ctx, next) => {
+shard.use<ShardContext>(async (ctx, next) => {
   // the event is a payload
   if(ctx.raw) {
     // got the READY event
@@ -109,9 +109,9 @@ const shard = new Shard({
 });
 
 // use the middleware that does the identify and heartbeat stuff
-shard.use(do_identify_stuff);
+shard.use<ShardContext>(do_identify_stuff("<bot_token>", 1 << 9));
 
-shard.use(async (ctx, next) => {
+shard.use<ShardContext>(async (ctx, next) => {
   // the event is a payload
   if(ctx.raw) {
     // got the READY event
@@ -126,6 +126,10 @@ shard.use(async (ctx, next) => {
   }
 });
 ```
+
+This would allow you to make middleware to use across multiple bots and use other peoples middleware that they create.
+
+You can see that all the `use`s include a `<ShardContext>` which is used by typescript to know what data is passes through in a `ctx`. If you are creating some middleware that alters the `ctx`, it's recommended to create your own type to be used here so that people using typescript can more easily use the data.
 
 [@discord]: https://github.com/discord
 [denska]: https://github.com/LeonskiDev/denska
