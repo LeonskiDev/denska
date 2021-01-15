@@ -27,21 +27,21 @@ Here we use the `use` function to add a middleware function onto the stack. We t
 
 Now that we know that we have a *hello* payload, let's respond with an *identify* payload.
 ```ts
-    shard.send({
+    shard.ws.send(JSON.stringify({
 	  op: PayloadOpcode.Identify,
 	  d: {
 	    token: "<bot_token>",
-      intents: 1 << 9, // the GUILD_MESSAGES intent
-      // these are good properties to use
-      properties: {
-        $os: "linux",
-        $browser: "denska",
-        $device: "denska"
-      }
+	    intents: 1 << 9, // the GUILD_MESSAGES intent
+	    // these are good properties to use
+	    properties: {
+	      $os: "linux",
+	      $browser: "denska",
+	      $device: "denska"
+	    }
 	  }
-	});
+	}));
 ```
-Here we use the `send` function which is just a helper function provided by `Shard`s to send payloads over the websocket.
+Here we access the WebSocket inside the `Shard` using `ws` and use the `send` function to send a `JSON.stringify`ed payload.
 
 Then we can call the `next` function to pass the ctx through if it's not a *hello* payload and close the `use` function.
 ```ts
