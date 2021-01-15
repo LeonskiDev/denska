@@ -1,6 +1,9 @@
 import Handler from "./handler.ts";
 import Payload from "./payload.ts";
-import { GATEWAY_VERSION } from "./_defaults.ts";
+
+/** The version of the Discord Gateway to use. */
+const GATEWAY_VERSION = 8;
+const ENCODING = "json";
 
 /**
  * A `Shard` is used to split bot operations into separate processes.
@@ -26,10 +29,10 @@ import { GATEWAY_VERSION } from "./_defaults.ts";
 export default class Shard extends Handler<ShardContext> {
   #ws: WebSocket;
 
-  constructor(url: string | URL) {
+  constructor({ url, gateway_version = GATEWAY_VERSION, encoding = ENCODING }: { url: string, gateway_version?: number, encoding?: "json" | "etf" }) {
     super();
 
-    this.#ws = new WebSocket(`${url}/?v=${GATEWAY_VERSION}&encoding=json`);
+    this.#ws = new WebSocket(`${url}/?v=${gateway_version}&encoding=${encoding}`);
 
     this.#ws.addEventListener("message", e => {
       this.handle({
