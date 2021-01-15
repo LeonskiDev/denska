@@ -31,13 +31,13 @@ Now that we know that we have a *hello* payload, let's respond with an *identify
 	  op: PayloadOpcode.Identify,
 	  d: {
 	    token: "<bot_token>",
-		  intents: 1 << 9, // the GUILD_MESSAGES intent
-		  // these are good properties to use
-	  	properties: {
-        $os: "linux",
-        $browser: "denska",
-        $device: "denska"
-      }
+		intents: 1 << 9, // the GUILD_MESSAGES intent
+		// these are good properties to use
+		properties: {
+		  $os: "linux",
+		  $browser: "denska",
+		  $device: "denska"
+		}
 	  }
 	});
 ```
