@@ -1,5 +1,5 @@
 /** https://discord.com/developers/docs/reference#snowflakes-snowflake-id-format-structure-left-to-right */
-export const EPOCH = 1420070400000;
+const EPOCH = 1420070400000;
 // this is the global increment
 let INCREMENT = 0;
 
