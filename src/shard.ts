@@ -50,6 +50,20 @@ export default class Shard extends Handler {
     });
   }
 
+  /**
+   * A helper function which sends a `Payload` over the WebSocket.
+   * 
+   * This just shortens:
+   * ```js
+   * shard.ws.send(JSON.stringify(payload));
+   * // to
+   * shard.send(payload);
+   * ```
+   */
+  send(payload: Payload) {
+    this.#ws.send(JSON.stringify(payload));
+  }
+
   /** Gets the WebSocket which the `Shard` is using. */
   get ws() {
     return this.#ws;
