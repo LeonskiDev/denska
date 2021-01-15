@@ -56,14 +56,14 @@ shard.use(async (ctx, next) => {
   console.log(ctx);
 });
 ```
-I didn't use the `ShardContext` here since we don't care about knowing what's in `ctx`, all we want to do it `console.log` it.
+I didn't use the `ShardContext` here since we don't care about knowing what's in `ctx`, all we want to do is `console.log` it.
 
 If we run this and forget to put our bot's token in the `token` part of the *identify* payload, we'll get close data from [@discord].
-```json
+```js
 { close: { code: 4004, name: "AuthenticationFailed" } }
 ```
 Otherwise we'll see a *dispatch* payload with the `READY` event and data relating to our bot.
-```json
+```js
 {
   raw: {
     t: "READY",

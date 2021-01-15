@@ -10,7 +10,7 @@
  * 
  * [Discord Docs](https://discord.com/developers/docs/topics/gateway#payloads)
  */
-export default interface Payload {
+export interface Payload {
   /** Opcode for the `Payload`. */
   op: PayloadOpcode,
   /** Event data. */

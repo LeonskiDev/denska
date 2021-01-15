@@ -1,5 +1,5 @@
-import Handler from "./handler.ts";
-import Payload from "./payload.ts";
+import { Handler } from "./handler.ts";
+import { Payload } from "./payload.ts";
 
 /** The version of the Discord Gateway to use. */
 const GATEWAY_VERSION = 8;
@@ -26,7 +26,7 @@ const ENCODING = "json";
  * 
  * [Discord Docs](https://discord.com/developers/docs/topics/gateway#sharding)
  */
-export default class Shard extends Handler {
+export class Shard extends Handler {
   #ws: WebSocket;
 
   constructor({ url, gateway_version = GATEWAY_VERSION, encoding = ENCODING }: { url: string, gateway_version?: number, encoding?: "json" | "etf" }) {

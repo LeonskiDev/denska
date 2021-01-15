@@ -14,7 +14,7 @@ let INCREMENT = 0;
  * 
  * [Discord Docs](https://discord.com/developers/docs/reference#snowflakes)
  */
-export default class Snowflake {
+export class Snowflake {
   /** Milliseconds since Discord Epoch, the first second of 2015 or 1420070400000. */
   #timestamp?: Date;
   #worker_id?: number;

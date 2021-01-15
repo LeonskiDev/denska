@@ -9,7 +9,7 @@
  * called by the current function, the `ctx` will begin to flow back up-stream.
  * This allows for the previous middleware functions to complete.
  */
-export default class Handler {
+export class Handler {
   #middleware: Middleware[] = [];
 
   /**
