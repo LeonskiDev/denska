@@ -1,6 +1,6 @@
 A middleware based [@discord] Gateway API.
 
-[Denska] allows you to create a [@discord] bot using a middleware system like that used by [koa](https://github.com/koajs/koa). When a payload is sent from [@discord] to a shard it gets added to a context and sent through the middleware stack.
+[denska] allows you to create a [@discord] bot using a middleware system like that used by [koa](https://github.com/koajs/koa). When a payload is sent from [@discord] to a shard it gets added to a context and sent through the middleware stack.
 
 Unlike other libraries (which are also awesome and more beginner friendly), [denska] doesn't handle anything out of the box. Instead, functionality is added through middleware provided by the user and another libraries.
 
@@ -99,4 +99,3 @@ Otherwise we'll see a *dispatch* payload with the `READY` event and data relatin
 
 [@discord]: https://github.com/discord
 [denska]: https://github.com/LeonskiDev/denska
-[Denska]: https://github.com/LeonskiDev/denska
