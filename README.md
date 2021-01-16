@@ -4,6 +4,8 @@ A middleware based [@discord] Gateway API.
 
 Unlike other libraries (which are also awesome and more beginner friendly), [denska] doesn't handle anything out of the box. Instead, functionality is added through middleware provided by the user and another libraries.
 
+After giving the bellow example a go, take a look at [denska-core](https://github.com/LeonskiDev/denska). It handles common middleware tasks that you'll face using [denska], plus extra things.
+
 ## Setting up a minimal Identify Payload
 When a bot first connects to [@discord]'s gateway it recieves a *hello* payload which we then have to respond to with an *identify* payload. Let's get a very minimal setup for this made, in a more full setup we'd also add heartbeating.
 
