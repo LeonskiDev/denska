@@ -1,100 +1,88 @@
-import { Handler } from "./handler.ts";
-import { Payload } from "./payload.ts";
-
-/** The version of the Discord Gateway to use. */
-const GATEWAY_VERSION = 8;
-const ENCODING = "json";
+import { Payload, CloseCode } from "./payload.ts";
 
 /**
- * A `Shard` is used to split bot operations into separate processes.
+ * Shards allow for a bot's processes to be split into separate instances.
  * 
- * Discord uses a method of user-controlled guild sharding which allows
- * splitting events across multiple connections. Sharding is completely user
- * controlled and requires no state-sharing between `Shard`s.
+ * While not super useful with smaller bots, splitting up a larger bot's
+ * processing into multiple separate instances allows it to - *generally* -
+ * process data more efficiently.
  * 
- * To use sharding, the `shard` array should be present in the identify
- * `Payload`. The first item should be the zero-based integer of the current
- * `Shard`, the second item being the total number of `Shard`s.
- * 
- * Calculating what events will be sent to what `Shard` can be do with the
- * following formula:
- * ```js
- * shard_id = (guild_id >> 22) % num_shards
- * ```
- * 
- * Be aware that DMs will only be sent to `Shard` 0.
+ * Once your bot is in more than 250,000 guilds, this is a mandatory step.
+ * Please read the docs below to find out more about sharding.
  * 
  * [Discord Docs](https://discord.com/developers/docs/topics/gateway#sharding)
  */
-export class Shard extends Handler {
+export class Shard {
+  #middleware: shard.Middleware[] = [];
   #ws: WebSocket;
 
-  constructor({ url, gateway_version = GATEWAY_VERSION, encoding = ENCODING }: { url: string, gateway_version?: number, encoding?: "json" | "etf" }) {
-    super();
+  constructor(options: shard.ShardOptions) {
+    this.#ws = new WebSocket(options.url);
 
-    this.#ws = new WebSocket(`${url}${url.endsWith("/") ? "" : "/"}?v=${gateway_version}&encoding=${encoding}`);
-
-    this.#ws.addEventListener("message", e => {
-      this.handle({
-        raw: JSON.parse(e.data) as Payload
-      } as ShardContext);
+    this.#ws.addEventListener("message", event => {
+      this.handle(
+        {
+          raw: JSON.parse(event.data)
+        },
+        async () => {}
+      );
     });
 
-    this.#ws.addEventListener("close", e => {
-      this.handle({
-        close: {
-          code: e.code,
-          name: CloseCode[e.code] ?? CloseCode[4000]
-        }
-      } as ShardContext);
+    this.#ws.addEventListener("close", event => {
+      this.handle(
+        {
+          close: {
+            code: event.code,
+            reason: CloseCode[event.code]
+          }
+        },
+        async () => {}
+      );
     });
   }
 
-  /** Gets the WebSocket which the `Shard` is using. */
-  get ws() {
-    return this.#ws;
+  use(fn: shard.Middleware) {
+    this.#middleware.push(fn);
+  }
+
+  handle(ctx: shard.Context, next: () => Promise<void>) {
+    let last = -1;
+
+    const dispatch = (i: number): Promise<void> => {
+      if(i <= last) return Promise.reject(new Error("next called multiple times"));
+      last = i;
+
+      let fn = this.#middleware[i];
+      if(i === this.#middleware.length) fn = next;
+      if(!fn) return Promise.resolve();
+
+      try { return Promise.resolve(fn(ctx, dispatch.bind(null, i + 1))); }
+      catch(err) { return Promise.reject(err); }
+    };
+
+    return dispatch(0);
+  }
+
+  send(payload: Payload) {
+    this.#ws.send(JSON.stringify(payload));
   }
 }
 
-/** This contains data which is relevant to a recieved event on the connection. */
-export interface ShardContext {
-  /** Data relating to the Websocket closing. */
-  close?: Close,
-  /** This is the raw payload which was recieved from Discord. */
-  raw?: Payload,
+export module shard {
+  export interface ShardOptions {
+    /** The Discord Gateway URL to connect to. */
+    url: string
+  }
 
-  [keyof: string]: unknown
-}
+  export type Middleware = (ctx: Context, next: () => Promise<void>) => Promise<void>;
 
-/**
- * Information relating to the connection closing.
- * 
- * [Discord Docs](https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-close-event-codes)
- */
-export interface Close {
-  code: number,
-  name: string
-}
+  export interface Context {
+    raw?: Payload,
+    close?: {
+      code: number,
+      reason: string
+    },
 
-/**
- * The reason for the connection closing.
- * 
- * [Discord Docs](https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-close-event-codes)
- */
-export enum CloseCode {
-  Closed = 1000,
-  UnknownError = 4000,
-  UnknownOpcode,
-  DecodeError,
-  NotAuthenticated,
-  AuthenticationFailed,
-  AlreadyAuthenticated,
-  InvalidSeq = 4007,
-  RateLimited,
-  SessionTimedOut,
-  InvalidShard,
-  ShardingRequired,
-  InvalidApiVersion,
-  InvalidIntent,
-  DisallowedIntent
+    [keyof: string]: unknown
+  }
 }

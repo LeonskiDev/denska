@@ -1,103 +1,143 @@
-A middleware based [@discord] Gateway API.
+Denska is the [koa] - *albeit not so beginner friendly* - of [@discord] gateway apis.
 
-[denska] allows you to create a [@discord] bot using a middleware system like that used by [koa](https://github.com/koajs/koa). When a payload is sent from [@discord] to a shard it gets added to a context and sent through the middleware stack.
+It only defines what it needs to manage a connection to the gateway and pass down a context containing relevant data.
 
-Unlike other libraries (which are also awesome and more beginner friendly), [denska] doesn't handle anything out of the box. Instead, functionality is added through middleware provided by the user and another libraries.
+## So, why denska?
+I'd actually preference using another library such as [discordeno] (deno) or [discord.js] (node) over denska. They're much more beginner friendly and contain **all** the necessities you'd want when using a [@discord] api.
 
-After giving the bellow example a go, take a look at [denska-core](https://github.com/LeonskiDev/denska). It handles common middleware tasks that you'll face using [denska], plus extra things.
+*"So why would you use denska in the end?"*
 
-## Setting up a minimal Identify Payload
-When a bot first connects to [@discord]'s gateway it receives a *hello* payload which we then have to respond to with an *identify* payload. Let's get a very minimal setup for this made, in a more full setup we'd also add heartbeating.
+If you want, need, or just prefer more control over each payload from it's raw state, then this is what desnka is for. It can also be made as beginner friendly as both [discordeno] and [discord.js] over time with middleware created by the community.
 
-So first let's import everything we need from [denska] and create a `Shard`. We'll go over what each thing is when we use it.
+## A quick example (using deno + typescript).
+This example will go through [identifying](https://discord.com/developers/docs/topics/gateway#identifying) and setting up [heartbeats](https://discord.com/developers/docs/topics/gateway#heartbeating). I'd recommend you read the docs for them as we go through this example.
+
+### Setting up.
+First things first, let's get everything that we need setup. This includes importing stuff, creating a shard, and some variables we'll be using.
 ```ts
-import {
-  Shard, ShardContext,
-  PayloadOpcode
-} from "https://deno.land/x/denska/mod.ts";
+// in your code you'll want to specify a version
+import { Shard, Opcode, Intent } from "https://deno.land/x/denska";
 
-const shard = new Shard({ url: "wss://gateway.discord.gg" });
+// this isn't the best way to do it, you'd want to get beforehand
+const shard = new Shard({
+	url: "wss://gateway.discord.gg/?v=8&encoding"
+});
+
+// this will be received by the *hello* payload when we first connect
+let heartbeat_interval: number;
+// this is received by all payloads, so this will be updated frequently
+let last_seq: number | null = null;
 ```
-A `Shard` is a single instance of a connection to the [@discord] gateway. We may later want to create multiple `Shard`s to handle more data over separate instances.
+Nice, now we've setup the base we can get into creating some middleware!
 
-Next we'll create our first middleware function and begin by check that the data payload we got is a *hello* payload.
+### Identifying.
+This is an important step as it let's us receive events for our bot going forward.
 ```ts
-shard.use<ShardContext>(async (ctx, next) => {
-  if(ctx.raw && ctx.raw.op === PayloadOpcode.Hello) {
-```
-Here we use the `use` function to add a middleware function onto the stack. We then take in a `ctx` of type `ShardContext` (which is used by typescript to check the data in `ctx`) and a `next` function which calls the next middleware function in the stack.
-
-Now that we know that we have a *hello* payload, let's respond with an *identify* payload.
-```ts
-    shard.ws.send(JSON.stringify({
-	  op: PayloadOpcode.Identify,
-	  d: {
-	    token: "<bot_token>",
-	    intents: 1 << 9, // the GUILD_MESSAGES intent
-	    // these are good properties to use
-	    properties: {
-	      $os: "linux",
-	      $browser: "denska",
-	      $device: "denska"
-	    }
-	  }
-	}));
-```
-Here we access the WebSocket inside the `Shard` using `ws` and use the `send` function to send a `JSON.stringify`ed payload.
-
-Then we can call the `next` function to pass the ctx through if it's not a *hello* payload and close the `use` function.
-```ts
-  } // if
-  else await next();
-}); // use
-```
-
-We'll lastly create another middleware function with `use` to `console.log` the `ctx`.
-```ts
+// this will do our identifying
 shard.use(async (ctx, next) => {
-  console.log(ctx);
+	// this checks to see that we got a payload, not a close event
+	if(ctx.raw) {
+		// then we check that the opcode is for our *hello* payload
+		if(ctx.raw.op === Opcode.Hello) {
+			shard.send({
+				// we're sending back an *identify* payload
+				op: Opcode.Identify,
+				d: {
+					// this identifies the bot we are connecting as
+					token: "<bot_token>",
+					// here we'll just use some good defaults
+					properties: {
+						$os: "linux",
+						$browser: "denska",
+						$device: "denska"
+					},
+					// `1` is for guild events
+					// `512` is for guild message events
+					intents: 1 | 512
+				}
+			});
+		}
+	}
+	
+	// pass down the `ctx` to the next middleware
+	await next();
 });
 ```
-I didn't use the `ShardContext` here since we don't care about knowing what's in `ctx`, all we want to do is `console.log` it.
+That's quite the chunk of code, thankfully most of it's whitespace and comments.
 
-If we run this and forget to put our bot's token in the `token` part of the *identify* payload, we'll get close data from [@discord].
-```js
-{ close: { code: 4004, name: "AuthenticationFailed" } }
-```
-Otherwise we'll see a *dispatch* payload with the `READY` event and data relating to our bot.
-```js
-{
-  raw: {
-    t: "READY",
-    s: 1,
-    op: 0,
-    d: {
-      v: 8,
-      user_settings: {},
-      user: {
-        verified: true,
-        username: "Denska Test",
-        mfa_enabled: true,
-        id: "797163722002661456",
-        flags: 0,
-        email: null,
-        discriminator: "4976",
-        bot: true,
-        avatar: null
-      },
-      session_id: "070652aba963996f096f5d2a8ac042ee",
-      relationships: [],
-      private_channels: [],
-      presences: [],
-      guilds: [ [Object] ],
-      guild_join_requests: [],
-      geo_ordered_rtc_regions: [ "europe", "russia", "us-east", "us-central", "india" ],
-      application: { id: "797163722002661456", flags: 0 }
-      ]
-    }
-  }
-}
-```
+In this we check that we got the *hello* payload and send back an *identify* payload in response. Said *identify* payload contains the basic information needed to setup a connection.
 
+Lastly, we want to pass down the `ctx` so we call `next` which does that for us.
+
+### Heartbeating.
+This is another important step as it keeps the connection alive so that we can continue to receive events.
+```ts
+shard.use(async (ctx, next) => {
+	if(ctx.raw) {
+		// here we get the sequence from the payload or use `null`
+		last_seq = ctx.raw.s ?? null;
+		
+		// here we want to check if the payload is a *hello* payload
+		if(ctx.raw.op === Opcode.Hello) {
+			// if so, we need it's `heartbeat_interval`
+			heartbeat_interval =
+				(ctx.raw.d as { heartbeat_interval: number }).heartbeat_interval;
+		}
+		
+		// then we also want to check if the payload is a...
+		if(
+			// *hello* payload, (initial heartbeat)
+			ctx.raw.op === Opcode.Hello
+			// *heartbeat* payload, (gateway requesting a heartbeat)
+			|| ctx.raw.op === Opcode.Heartbeat
+			// or a *heartbeatack* payload (last heatbeat was acknowledged)
+			|| ctx.raw.op == Opcode.HeartbeatACK
+		) {
+			// then we can send a *heartbeat* payload back after
+			// `heartbeat_interval` milliseconds
+			setTimeout(() => {
+				shard.send({
+					op: Opcode.Heartbeat,
+					d: last_seq
+				});
+			}, heartbeat_interval);
+		}
+	}
+	
+	// pass down the `ctx` to the next middleware
+	await next();
+});
+```
+Another one that looks like a lot of code, but really it's just whitespace and comments.
+
+In this we check that we got any payload, if so we save it's sequence if it has one. Then we check for a *hello* payload specifically, and if we got it we take its `heartbeat_interval` for later. Then we check for either a *hello*, *heartbeat*, or *heartbeatack* payload and send back a *heartbeat* payload after `heartbeat_interval` milliseconds.
+
+Once again, we want to pass down the `ctx` so we call `next` which does that for us.
+
+### Testing.
+So, we have it all setup and now it's time to test. This is the simplest bit of middleware, all we need to do it `console.log` the `ctx`.
+```ts
+shard.use(async ctx => {
+	console.log(ctx);
+})
+```
+Done, not much to explain here.
+
+When you run the code you'll see a *hello* payload shortly followed by a *dispatch* payload with the `t` set to `READY`, this contains your bot's user data.
+
+Then comes more *dispatch* events with `t` set to `GUILD_CREATE` which are the guilds your bot is in. As users in these guilds send messages, you'll also receive *dispatch* events with `t` set to `MESSAGE_CREATE`.
+
+Every once in a while - *however milliseconds `heartbeat_interval` is set to* - you'll see a *heartbeatack* payload which is the gateway saying that your heartbeat was acknowledged. If no *heartbeatack* payload is received then the connection will die.
+
+If any of the above things fail, you'll most likely see `close` in `ctx` instead of `raw`. This will contain the close `code` and a `reason` why the connection closed.
+
+## denska-core.
+An *"official"* - *by that I mean it's maintained alongside denska* - middleware package for denska exists called [denska-core], this does everything in the above example plus extra.
+
+I'd recommend using it if you'd like a quick and easy setup for the stuff above.
+
+[koa]: https://koajs.com/
 [@discord]: https://github.com/discord
-[denska]: https://github.com/LeonskiDev/denska
+[discordeno]: https://deno.land/x/discordeno
+[discord.js]: https://www.npmjs.com/package/discord.js
+[denska-core]: https://deno.land/x/denska_core
