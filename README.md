@@ -16,7 +16,7 @@ This example will go through [identifying](https://discord.com/developers/docs/t
 First things first, let's get everything that we need setup. This includes importing stuff, creating a shard, and some variables we'll be using.
 ```ts
 // in your code you'll want to specify a version
-import { Shard, Opcode, Intent } from "https://deno.land/x/denska";
+import { Shard, Opcode } from "https://deno.land/x/denska";
 
 // this isn't the best way to do it, you'd want to get beforehand
 const shard = new Shard({
